@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd C:/Users/varun/genterp && npx tsc --noEmit --skipLibCheck 2>&1)",
+      "Bash(cd C:/Users/varun/genterp && pnpm test 2>&1)",
+      "Bash(cd C:/Users/varun/genterp && npx tsc --noEmit --skipLibCheck 2>&1 && pnpm test 2>&1)"
+    ]
+  }
+}
