@@ -28,8 +28,8 @@ async function fetchLatestSemester(): Promise<string> {
   if (!res.ok) throw new Error(`semesters fetch failed: ${res.status}`);
   const semesters: string[] = await res.json();
   if (!semesters.length) throw new Error("semesters array is empty");
-  // umd.io returns semesters in descending order — first entry is the latest
-  return semesters[0];
+  // umd.io returns semesters in ascending order — last entry is the latest
+  return semesters[semesters.length - 1];
 }
 
 function transformCourse(raw: UmdCourse) {
@@ -75,10 +75,12 @@ export async function POST(req: NextRequest) {
 
   const logId: number = logEntry.id;
 
-  // 3. Fetch latest semester
+  // 3. Resolve semester — body may override auto-detection
+  const body = await req.json().catch(() => ({})) as { semester?: string };
+
   let semester: string;
   try {
-    semester = await fetchLatestSemester();
+    semester = body.semester?.trim() || await fetchLatestSemester();
   } catch (err) {
     await supabase
       .from("sync_log")

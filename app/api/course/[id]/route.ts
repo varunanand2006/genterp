@@ -47,16 +47,25 @@ interface CourseRow {
 // ── Route handler ─────────────────────────────────────────────────────────────
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+  const semester = req.nextUrl.searchParams.get("semester")?.trim() ?? "";
 
   if (!id) {
     return NextResponse.json({ error: "Course ID is required" }, { status: 400 });
   }
 
   const supabase = createClient();
+
+  // Build sections query — filter by semester when provided.
+  const sectionsBase = supabase
+    .from("sections")
+    .select("section_id, instructors, seats_open, seats_total, waitlist_count, meetings")
+    .eq("course_id", id);
+  const sectionsQuery = (semester ? sectionsBase.eq("semester", semester) : sectionsBase)
+    .order("section_id");
 
   // Fetch course and sections in parallel — they are independent queries.
   const [courseResult, sectionsResult] = await Promise.all([
@@ -65,12 +74,7 @@ export async function GET(
       .select("*")
       .eq("course_id", id)
       .single<CourseRow>(),
-
-    supabase
-      .from("sections")
-      .select("section_id, instructors, seats_open, seats_total, waitlist_count, meetings")
-      .eq("course_id", id)
-      .returns<SectionRow[]>(),
+    sectionsQuery.returns<SectionRow[]>(),
   ]);
 
   if (courseResult.error) {

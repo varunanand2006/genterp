@@ -47,7 +47,7 @@ async function fetchLatestSemester(): Promise<string> {
   if (!res.ok) throw new Error(`semesters fetch failed: ${res.status}`);
   const semesters: string[] = await res.json();
   if (!semesters.length) throw new Error("semesters array is empty");
-  return semesters[0];
+  return semesters[semesters.length - 1];
 }
 
 function normalizeMeeting(m: UmdMeeting): NormalizedMeeting {
@@ -58,8 +58,8 @@ function normalizeMeeting(m: UmdMeeting): NormalizedMeeting {
     days: m.days ?? "",
     start: parseTimeToMilitary(m.start_time),
     end: parseTimeToMilitary(m.end_time),
-    // Combine building + room into a single string; null if either is missing
-    room: building && room ? `${building} ${room}` : null,
+    // Combine building + room. Preserve building alone for ONLINE sections where room is absent.
+    room: building && room ? `${building} ${room}` : (building || null),
     type: m.classtype?.trim() || "Lecture",
   };
 }
@@ -106,10 +106,12 @@ export async function POST(req: NextRequest) {
 
   const logId: number = logEntry.id;
 
-  // 3. Fetch latest semester
+  // 3. Resolve semester — body may override auto-detection
+  const body = await req.json().catch(() => ({})) as { semester?: string };
+
   let semester: string;
   try {
-    semester = await fetchLatestSemester();
+    semester = body.semester?.trim() || await fetchLatestSemester();
   } catch (err) {
     await supabase
       .from("sync_log")
@@ -147,7 +149,7 @@ export async function POST(req: NextRequest) {
 
     const { error: upsertError } = await supabase
       .from("sections")
-      .upsert(rows, { onConflict: "section_id" });
+      .upsert(rows, { onConflict: "section_id,semester" });
 
     if (upsertError) {
       console.error(`[sync/sections] page ${page} upsert failed:`, upsertError.message);

@@ -1,7 +1,7 @@
 # GenTerp — Claude Code Instructions
 
 ## What This Project Is
-AI-powered UMD GenEd discovery and schedule planner. Single-page app with boolean GenEd search, AI review summaries, and a weekly calendar with conflict detection.
+AI-powered UMD GenEd and elective course discovery and schedule planner. Single-page app with boolean GenEd search, department/level filtering, AI review summaries, and a weekly calendar. Shows all UMD courses — not just GenEd — with GenEd tags as an optional filter layer.
 
 ## Tech Stack
 - Next.js 16 (App Router) — NO src/ directory, everything at project root (app/, lib/, components/)
@@ -34,7 +34,8 @@ AI-powered UMD GenEd discovery and schedule planner. Single-page app with boolea
 
 ## Database Tables (Supabase)
 - `courses` — course_id (PK), title, dept_id, department, credits, description, gen_ed_raw, gen_ed_tags, avg_gpa, professors, ai_summary, relationships, last_synced
-- `sections` — section_id (PK), course_id (FK), instructors, seats_total, seats_open, waitlist_count, meetings (JSONB), semester, last_synced
+- `sections` — (section_id, semester) composite PK, course_id (FK), instructors, seats_total, seats_open, waitlist_count, meetings (JSONB), semester, last_synced
+- `grades` — id, course_id (FK), professor, semester, section, a_plus…f, w, other — per-section grade distributions from PlanetTerp
 - `sync_log` — id, sync_type, started_at, finished_at, status, records_synced, error_message
 
 ## External APIs
@@ -46,4 +47,5 @@ AI-powered UMD GenEd discovery and schedule planner. Single-page app with boolea
 - Parameterized SQL only — never concatenate user input into queries
 - All API routes return typed JSON responses
 - Use shadcn/ui components for UI elements
-- Debounce search inputs by 300ms
+- Search inputs submit on Enter or icon click — no auto-search on keystroke
+- Dept filter supports comma-separated values and level patterns (e.g. CMSC4XX)
